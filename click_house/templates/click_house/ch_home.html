@@ -1,0 +1,383 @@
+<style>
+
+    .success_dot {
+      height: 25px;
+      width: 25px;
+      background-color: green;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .fail_dot {
+      height: 25px;
+      width: 25px;
+      background-color: red;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    
+    .modal {
+      display: block; /* Hidden by default */
+      position: fixed; /* Stay in place */
+      z-index: 1; /* Sit on top */
+      padding-top: 5%; /* Location of the box */
+      padding-bottom: 5%;
+      left: 0;
+      top: 0;
+      width: 100%; /* Full width */
+      height: 100%; /* Full height */
+      overflow: auto; /* Enable scroll if needed */
+      background-color: rgb(0,0,0); /* Fallback color */
+      background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+    }
+    @media (min-width: 1300px){
+        #permitions {
+            height: 100%;
+            margin-top: 0px;
+            margin-bottom: 0px;
+            margin-right: auto;
+            margin-left: auto;
+            max-width: 100%;
+            width: 800px;
+        }
+    }
+    @media (max-width: 1300px){
+        #permitions {
+            height: 100%;
+            margin-top: 0px;
+            margin-bottom: 0px;
+            margin-right: auto;
+            margin-left: auto;
+            max-width: 100%;
+            width: 100%;
+        }
+        .modal{
+            padding-top: 0px;
+            padding-bottom: 0px;
+        }
+    }
+    #user_info {
+        /* 80% of window height */
+        height: 100%;
+    }
+    .modal .modal-body {
+        height: calc(100% - 150px);
+        
+    }
+    .modal .modal-body>.row {
+        height: 100%;
+    }
+    .modal .modal-body>.row>.col {
+        height: 100%;
+    }
+    .modal .modal-body .modal-content {
+        max-height: calc(100% - 30px);
+        overflow-y: auto;
+    }
+    .small_roles{
+        color:darkgray; 
+        font-size: small;
+    }
+    .table_container>.row:hover .small_roles, .selected .small_roles{
+        color: seashell;
+    }
+    .table_container>.row:hover , .selected{
+        border-radius: 25px;
+        background-color: #0d6dfd;
+        
+        color: seashell;
+        
+    }
+    #click_house_users{
+        table-layout: fixed;
+        border-collapse: collapse;
+        width: 100%;
+    }
+    
+    td {
+        word-wrap: break-word;
+    }
+    #click_house_users_wrapper{
+        z-index:50;
+    }
+    </style>
+    
+    {% extends "malushka/base.html" %}
+    {% load static %}
+    {% csrf_token %}
+    {% block content %}
+    <div class="row g-3"> 
+        <div class="col-md-3">
+            <select id="select_host" class="form-select" aria-label="Default select example">
+                <option value="1_cloud_host" selected>1 Cloud Host</option>
+                <option value="2_cloud_host">2 Cloud Host</option>
+                {% if is_super_admin %}
+                    <option value="physical_shards">Physical Hosts</option>
+                {% endif %}
+            </select>
+        </div>
+        <div class="col">
+            <button type="button" class="btn btn-primary" onclick="openNewUserForm()">
+                Create User
+            </button> 
+            <button type="button" class="btn btn-primary" onclick="openNewDbForm()">
+                Create Database
+            </button>
+        </div>  
+    </div>
+    <div class="container" id="main_content" style="padding-left: 0px; padding-right: 0px; display: none; ">
+        <div class="row">
+            <div class="col-12 table_container">
+                <h3>ClickHouse Users</h3>
+                
+                <br>
+                <small>
+                    <table id="click_house_users" class="display col-12" >
+                        <thead>
+                            <tr>
+                                <th scope="col" class="col-2" style="width: 10%;" data-field="username">User</th>
+                                <th scope="col" class="col-8" style="width: 80%;" data-field="databases_name">Databases</th>
+                                <th scope="col" class="col-2" style="width: 10%;" data-field="action">Actions</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </small>
+            </div>
+            
+        </div>
+    </div> 
+    <div class="modal fade" id="modal_new_db" tabindex="-1" role="dialog"  aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content " id="new_user" style=" padding: 0;">
+                <div class="modal-header">
+                    <h3>Create Database</h3>
+                    <button type="button" class="close" data-dismiss="modal"  aria-label="Close" onclick="closeNewDbForm();">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" >
+                    <form id="new-database-form" >
+                        <div class="mb-3 row needs-validation">
+                            <label for="newDbUsername" class="col-sm-2 col-form-label">Database</label>
+                            <div class="col-sm-10">
+                                <input type="text"  class="form-control" id="newDbUsername" >
+                                <div class="valid-feedback">
+                                    Looks good!
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please choose another title.
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeNewDbForm();">Close</button>
+                    <button id="btn-create-user" type="submit" class="btn btn-primary"  onclick="checkNewDb()">Create</button>
+                </div>
+            </div>
+        </div>
+    </div> 
+    <div class="modal fade" id="modal_new_user" tabindex="-1" role="dialog"  aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content " id="new_user" style=" padding: 0;">
+                <div class="modal-header">
+                    <h3>Create User</h3>
+                    <button type="button" class="close" data-dismiss="modal"  aria-label="Close" onclick="closeNewUserForm();">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" >
+                    <form id="signup-form" >
+                        <div class="mb-3 row needs-validation">
+                            <label for="newUserUsername" class="col-sm-2 col-form-label">Username</label>
+                            <div class="col-sm-10">
+                                <input type="text"  class="form-control" id="newUserUsername" >
+                                <div class="valid-feedback">
+                                    Looks good!
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please choose another username.
+                                </div>
+                            </div>
+                            
+                        </div>
+                        <div class="mb-3 row needs-validation">
+                            <label for="newUserPassword" class="col-sm-2 col-form-label" >Password</label>
+                            <div class="col-sm-10 input-group">
+                                <input class="form-control" id="newUserPassword" name="password"  value=""type="password">
+                                <span class="input-group-text">
+                                    <i class="fa fa-eye-slash" id="togglePassword" 
+                                    style="cursor: pointer"></i>
+                                </span>
+                                <div class="valid-feedback">
+                                    Looks good!
+                                </div>
+                                <div class="invalid-feedback">
+                                    Password is not secure.
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary" onclick="generatePassword();">Generate Password</button>
+                    </form>
+                    
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeNewUserForm();">Close</button>
+                    <button id="btn-create-user" type="submit" class="btn btn-primary"  onclick="checkCreds()">Create and Copy</button>
+                </div>
+            </div>
+        </div>
+    </div> 
+    <div class="modal fade" id="modal_users_perms" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            
+        </div>
+    </div>
+    <div class="modal " id="approve_delete">
+        <div class="modal-content col-md-4" >
+            <div class="container"  style="padding-left: 0px; padding-right: 0px;  ">
+                <div class="row">
+                    <div class="col-md-6 table_container">
+                        <h3>Deleting User</h3>
+                    </div>
+                    <div class="col-md-6 table_container">
+                        <div style="display:inline-block" class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-close  pull-right" aria-label="Close" onclick="closeDeleteForm()"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container" >
+                <div class="row">
+                    Are you sure, you want to delete this user?
+                </div>
+                <br/>
+                <div class="row"  style="padding-left: 5px; padding-right: 0px;" id="deleting_username">
+                        
+                </div>
+                <br/>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button   class="btn btn-light" onclick="closeDeleteForm()">Cancel</button>
+                    <button id="btn_confirm_delete" type="submit" class="btn btn-primary" disabled onclick="deleteUser()">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="modal_container">
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+            <div id="delete_toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true"style="margin-bottom:20px">
+                <div class="toast-header">
+                    <img width="20" height="20"src="{% static 'img/malushka.png' %}" class="rounded me-2" >
+                    <strong class="me-auto">Click House</strong>
+                    <small>right now</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div id="delete_toast_body" class="toast-body">
+                    
+                </div>
+            </div>
+            <div id="new_user_toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <img width="20" height="20"src="{% static 'img/malushka.png' %}" class="rounded me-2" >
+                    <strong class="me-auto">Click House</strong>
+                    <small>right now</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div id="new_user_toast_body" class="toast-body">
+                    
+                </div>
+            </div>
+            <div id="new_db_toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <img width="20" height="20"src="{% static 'img/malushka.png' %}" class="rounded me-2" >
+                    <strong class="me-auto">Click House</strong>
+                    <small>right now</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div id="new_db_toast_body" class="toast-body">
+                    
+                </div>
+            </div>
+            <div id="permitions_toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <img width="20" height="20"src="{% static 'img/malushka.png' %}" class="rounded me-2" >
+                    <strong class="me-auto">Click House</strong>
+                    <small>right now</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div id="permitions_toast_body" class="toast-body">
+                    
+                </div>
+            </div>
+            <div id="system_permitions_toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <img width="20" height="20"src="{% static 'img/malushka.png' %}" class="rounded me-2" >
+                    <strong class="me-auto">Click House</strong>
+                    <small>right now</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div id="system_permitions_toast_body" class="toast-body">
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+ 
+    {% endblock content %}
+    {% block js %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script type="text/javascript" src="{% static '/click_house/users.js' %}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+    <link href="https://unpkg.com/bootstrap-table@1.19.1/dist/bootstrap-table.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/bootstrap-table@1.19.1/dist/bootstrap-table.min.js"></script>
+    <!-- jQuery library -->
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            
+            $('#modal_new_user').modal({backdrop: 'static', keyboard: false}) 
+            $('#modal_users_perms').modal({backdrop: 'static', keyboard: false})
+            $('#modal_new_db').modal({backdrop: 'static', keyboard: false})
+
+            $('#click_house_users').dataTable( {
+                                "lengthMenu": [[10, 25, 50, 100, 200, -1], [10, 25, 50, 100, 200, "All"]],
+                                "pageLength" : 25,
+                                "columns": [
+                                    { "data": "username" },
+                                    { "data": "databases_name" },
+                                    { "data": "action" }
+                                ]
+                            } );
+                            
+            loadUserMainPage();
+            $('#select_host').on('change', function() {
+                loadUserMainPage();
+            })
+            const togglePassword = document.querySelector("#togglePassword");
+            const password = document.querySelector("#newUserPassword");
+
+            togglePassword.addEventListener("click", function () {
+            
+                // toggle the type attribute
+                const type = password.getAttribute("type") === "password" ? "text" : "password";
+                password.setAttribute("type", type);
+                // toggle the eye icon
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+
+            document.getElementById('main_content').style.display = 'block';
+        });
+        
+    </script>
+    
+    {% endblock js %}
